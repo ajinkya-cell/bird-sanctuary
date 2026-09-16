@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { motion, MotionValue, useTransform, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, MotionValue, useTransform, useReducedMotion } from "framer-motion";
 
 const IMAGE_NATIVE_WIDTH = 4055;
 const IMAGE_NATIVE_HEIGHT = 1080;
@@ -11,34 +11,75 @@ const ASPECT_RATIO = IMAGE_NATIVE_WIDTH / IMAGE_NATIVE_HEIGHT; // ~3.7546
 interface BirdExhibit {
   id: string;
   name: string;
+  scientificName: string;
+  indexStr: string;
   image: string;
   info: string;
+  placement: {
+    left: string;
+    top: string;
+    width: string;
+    height: string;
+  };
 }
 
+// 4 Birds ordered strictly from left to right: L4 -> L1 -> L3 -> L2
 const BIRDS: BirdExhibit[] = [
   {
+    id: "l4",
+    name: "Eurasian Spoonbill",
+    scientificName: "Platalea leucorodia",
+    indexStr: "01 / 04",
+    image: "/L4.png",
+    info: "A graceful white wading bird known for its flat, spatulate bill. It sweeps side-to-side through shallow marsh pools to catch small fish and aquatic insects.",
+    placement: {
+      left: "9.25%",
+      top: "67.50%",
+      width: "3.67%",
+      height: "13.61%",
+    },
+  },
+  {
     id: "l1",
-    name: "Heron",
+    name: "Grey Heron",
+    scientificName: "Ardea cinerea",
+    indexStr: "02 / 04",
     image: "/L1.png",
-    info: "A long-legged waterbird that patiently hunts fish and other small animals in shallow water.",
+    info: "A tall, statuesque waterbird standing patiently along the water's edge, poised to strike with pinpoint accuracy at passing fish and amphibians.",
+    placement: {
+      left: "34.15%",
+      top: "78.33%",
+      width: "3.72%",
+      height: "16.48%",
+    },
+  },
+  {
+    id: "l3",
+    name: "Glossy Ibis",
+    scientificName: "Plegadis falcinellus",
+    indexStr: "03 / 04",
+    image: "/L3.png",
+    info: "A slender, down-curved billed forager that probes submerged soil and muddy shallows under the trees for mollusks, insects, and small crustaceans.",
+    placement: {
+      left: "52.53%",
+      top: "81.02%",
+      width: "3.58%",
+      height: "9.17%",
+    },
   },
   {
     id: "l2",
     name: "Painted Stork",
+    scientificName: "Mycteria leucocephala",
+    indexStr: "04 / 04",
     image: "/L2.png",
-    info: "A tall, colourful waterbird that feeds in shallow wetlands and builds large nesting colonies.",
-  },
-  {
-    id: "l3",
-    name: "Ibis",
-    image: "/L3.png",
-    info: "A long-billed bird that searches through mud and shallow water for insects and small aquatic animals.",
-  },
-  {
-    id: "l4",
-    name: "Egret",
-    image: "/L4.png",
-    info: "A graceful white waterbird often seen wading through wetlands in search of fish and insects.",
+    info: "A magnificent wading bird with delicate pink wing feathers and a heavy down-turned yellow beak, foraging in lush flooded wetland marshes.",
+    placement: {
+      left: "71.34%",
+      top: "72.78%",
+      width: "4.54%",
+      height: "12.32%",
+    },
   },
 ];
 
@@ -52,6 +93,8 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
 
   const [maxScrollX, setMaxScrollX] = useState<number>(0);
   const [renderedWidth, setRenderedWidth] = useState<number>(0);
+  const [hoveredBird, setHoveredBird] = useState<BirdExhibit | null>(null);
+  const [isSceneActive, setIsSceneActive] = useState<boolean>(false);
 
   const calculateBounds = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -77,6 +120,14 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, [calculateBounds]);
 
+  // Track if scene is currently visible in viewport to show/hide top-middle overlay
+  useEffect(() => {
+    const unsub = progress.on("change", (v) => {
+      setIsSceneActive(v >= 0.14 && v <= 0.76);
+    });
+    return () => unsub();
+  }, [progress]);
+
   // Scene 2 vertical entrance & exit:
   // Rises into position from 0.00 to 0.18, stays pinned until 0.72, then slight upward drift
   const y = useTransform(
@@ -86,74 +137,12 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
   );
 
   // Horizontal pan:
-  // 1. [0.18 -> 0.30]: Pan from start (0) to middle-left (-0.38 * maxScrollX)
-  // 2. [0.30 -> 0.58]: Continuous slow drift across middle (-0.38 * maxScrollX -> -0.62 * maxScrollX)
-  // 3. [0.58 -> 0.72]: Resume pan from -0.62 * maxScrollX to end (-maxScrollX)
+  // Smoothly and continuously translates across the panoramic wetland as user scrolls
   const x = useTransform(
     progress,
-    [0, 0.18, 0.30, 0.58, 0.72, 1],
-    [0, 0, -maxScrollX * 0.38, -maxScrollX * 0.62, -maxScrollX, -maxScrollX]
+    [0, 0.18, 0.72, 1],
+    [0, 0, -maxScrollX, -maxScrollX]
   );
-
-  // Subtle soft-focus blur & light dimming during the middle bird showcase
-  const blurOverlayOpacity = useTransform(
-    progress,
-    [0.29, 0.32, 0.56, 0.59],
-    [0, 1, 1, 0]
-  );
-
-  // Overall showcase container animation
-  const showcaseOpacity = useTransform(
-    progress,
-    [0.30, 0.33, 0.56, 0.59],
-    [0, 1, 1, 0]
-  );
-
-  const showcaseY = useTransform(
-    progress,
-    [0.30, 0.33, 0.56, 0.59],
-    [shouldReduceMotion ? 0 : 25, 0, 0, shouldReduceMotion ? 0 : 20]
-  );
-
-  // Individual Bird Crossfades in sequence:
-  // Bird 1: Heron (0.32 -> 0.38)
-  const bird1Opacity = useTransform(progress, [0.31, 0.33, 0.375, 0.395], [0, 1, 1, 0]);
-  const bird1Y = useTransform(
-    progress,
-    [0.31, 0.33, 0.375, 0.395],
-    [shouldReduceMotion ? 0 : 16, 0, 0, shouldReduceMotion ? 0 : -16]
-  );
-
-  // Bird 2: Painted Stork (0.39 -> 0.44)
-  const bird2Opacity = useTransform(progress, [0.38, 0.40, 0.44, 0.46], [0, 1, 1, 0]);
-  const bird2Y = useTransform(
-    progress,
-    [0.38, 0.40, 0.44, 0.46],
-    [shouldReduceMotion ? 0 : 16, 0, 0, shouldReduceMotion ? 0 : -16]
-  );
-
-  // Bird 3: Ibis (0.45 -> 0.50)
-  const bird3Opacity = useTransform(progress, [0.445, 0.465, 0.505, 0.525], [0, 1, 1, 0]);
-  const bird3Y = useTransform(
-    progress,
-    [0.445, 0.465, 0.505, 0.525],
-    [shouldReduceMotion ? 0 : 16, 0, 0, shouldReduceMotion ? 0 : -16]
-  );
-
-  // Bird 4: Egret (0.51 -> 0.56)
-  const bird4Opacity = useTransform(progress, [0.51, 0.53, 0.56, 0.58], [0, 1, 1, 0]);
-  const bird4Y = useTransform(
-    progress,
-    [0.51, 0.53, 0.56, 0.58],
-    [shouldReduceMotion ? 0 : 16, 0, 0, shouldReduceMotion ? 0 : -16]
-  );
-
-  const birdMotions = [
-    { opacity: bird1Opacity, y: bird1Y },
-    { opacity: bird2Opacity, y: bird2Y },
-    { opacity: bird3Opacity, y: bird3Y },
-    { opacity: bird4Opacity, y: bird4Y },
-  ];
 
   // Overall scene opacity: visible from 0.00 to 0.78
   const opacity = useTransform(
@@ -163,7 +152,7 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
   );
 
   const pointerEvents = useTransform(progress, (p) =>
-    p >= 0.08 && p <= 0.76 ? "auto" : "none"
+    p >= 0.14 && p <= 0.76 ? "auto" : "none"
   );
 
   return (
@@ -197,76 +186,126 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
             className="object-cover object-left h-full w-full select-none pointer-events-none"
             quality={90}
           />
-        </div>
-      </motion.div>
 
-      {/* Gentle Atmospheric Soft Blur Overlay (Gentle 3px depth-of-field) */}
-      <motion.div
-        style={{
-          opacity: blurOverlayOpacity,
-        }}
-        className="absolute inset-0 backdrop-blur-[3px] bg-black/20 pointer-events-none z-25 transition-opacity duration-200"
-      />
-
-      {/* Floating Bird Showcase Overlay (Directly on screen, no card shells) */}
-      <motion.div
-        style={{
-          opacity: showcaseOpacity,
-          y: showcaseY,
-        }}
-        className="absolute bottom-6 sm:bottom-10 md:bottom-14 left-4 right-4 sm:left-8 sm:right-8 md:left-16 md:right-16 max-w-6xl mx-auto h-[48vh] sm:h-[42vh] md:h-[44vh] min-h-[290px] max-h-[460px] z-30 pointer-events-none select-none"
-      >
-        <div className="grid grid-cols-2 gap-4 sm:gap-8 md:gap-14 w-full h-full items-center">
-          {/* Left: Floating Bird Cutout Image (No Card Box) */}
-          <div className="relative w-full h-full flex items-center justify-center">
-            {BIRDS.map((bird, idx) => (
-              <motion.div
-                key={`img-${bird.id}`}
+          {/* Placed Interactive Birds Anchored Directly on the Landscape */}
+          {BIRDS.map((bird) => {
+            const isHovered = hoveredBird?.id === bird.id;
+            return (
+              <motion.button
+                key={bird.id}
+                type="button"
+                aria-label={`Inspect ${bird.name}`}
                 style={{
-                  opacity: birdMotions[idx].opacity,
-                  y: birdMotions[idx].y,
+                  left: bird.placement.left,
+                  top: bird.placement.top,
+                  width: bird.placement.width,
+                  height: bird.placement.height,
                 }}
-                className="absolute inset-0 flex items-center justify-center select-none pointer-events-none"
+                className="absolute cursor-pointer select-none focus:outline-none z-20 group"
+                onMouseEnter={() => setHoveredBird(bird)}
+                onMouseLeave={() => setHoveredBird(null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHoveredBird((prev) => (prev?.id === bird.id ? null : bird));
+                }}
+                whileHover={{ scale: 1.10 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
               >
-                <div className="relative w-full h-full max-w-[240px] max-h-[240px] sm:max-w-[320px] sm:max-h-[320px] md:max-w-[420px] md:max-h-[420px]">
+                {/* Subtle visual pulse ring to signal interactivity */}
+                <div className="absolute inset-0 -m-2 rounded-full border border-[#d4af37]/0 group-hover:border-[#d4af37]/40 transition-colors duration-300 pointer-events-none" />
+
+                <div className="relative w-full h-full">
                   <Image
                     src={bird.image}
                     alt={bird.name}
                     fill
-                    sizes="(max-width: 640px) 240px, (max-width: 1024px) 320px, 420px"
-                    className="object-contain filter drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)]"
-                    priority={idx === 0}
+                    sizes="(max-width: 768px) 150px, 240px"
+                    className={`object-contain select-none pointer-events-none transition-all duration-300 ${
+                      isHovered
+                        ? "filter drop-shadow-[0_8px_20px_rgba(255,255,255,0.4)] brightness-110"
+                        : "filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_6px_16px_rgba(255,255,255,0.25)]"
+                    }`}
                   />
                 </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Right: Floating Bird Information (No Card Box) */}
-          <div className="relative w-full h-full flex flex-col justify-center">
-            {BIRDS.map((bird, idx) => (
-              <motion.div
-                key={`info-${bird.id}`}
-                style={{
-                  opacity: birdMotions[idx].opacity,
-                  y: birdMotions[idx].y,
-                }}
-                className="absolute inset-0 flex flex-col justify-center select-none"
-              >
-                <span className="text-xs sm:text-sm uppercase tracking-[0.25em] text-[#d6cdb8]/75 mb-1.5 sm:mb-2 md:mb-3 font-mono drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
-                  0{idx + 1} / 04
-                </span>
-                <h3 className="font-[family-name:var(--font-alegreya)] italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#f6f1e8] tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
-                  {bird.name}
-                </h3>
-                <p className="font-[family-name:var(--font-alegreya)] text-sm sm:text-base md:text-xl lg:text-2xl text-[#ded8ca] leading-relaxed mt-2 sm:mt-3 md:mt-5 max-w-xl line-clamp-4 sm:line-clamp-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-                  {bird.info}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+              </motion.button>
+            );
+          })}
         </div>
       </motion.div>
+
+      {/* Top-Middle Floating Information Card */}
+      <AnimatePresence>
+        {isSceneActive && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed top-3 sm:top-5 md:top-6 left-1/2 -translate-x-1/2 z-40 w-[94vw] max-w-[460px] sm:max-w-[500px] md:max-w-[540px] pointer-events-none flex flex-col items-center"
+          >
+            <AnimatePresence mode="wait">
+              {hoveredBird ? (
+                <motion.div
+                  key={hoveredBird.id}
+                  initial={{ opacity: 0, y: -16, scale: 0.94 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.94 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="pointer-events-auto relative w-full aspect-[889/670] flex items-center justify-center filter drop-shadow-[0_16px_36px_rgba(0,0,0,0.65)]"
+                >
+                  {/* Parchment Frame Artwork (info-box.png) */}
+                  <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
+                    <Image
+                      src="/info-box.png"
+                      alt="Bird information card"
+                      fill
+                      priority
+                      sizes="(max-width: 640px) 94vw, 540px"
+                      className="object-contain"
+                    />
+                  </div>
+
+                  {/* Inner Content Area */}
+                  <div
+                    style={{ fontFamily: "'Andika', sans-serif" }}
+                    className="relative z-10 w-full h-full px-[14%] pt-[18%] pb-[19%] flex flex-col items-center justify-center text-center select-none"
+                  >
+                    {/* Bird Name: Normal bold in #808C4C */}
+                    <h3
+                      style={{ color: "#808C4C" }}
+                      className="text-lg sm:text-2xl md:text-[26px] font-bold not-italic tracking-wide leading-tight mb-1 sm:mb-2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
+                    >
+                      {hoveredBird.name}
+                    </h3>
+
+                    {/* Information Text: Italics regular in #C6A1B8 */}
+                    <p
+                      style={{ color: "#C6A1B8" }}
+                      className="text-xs sm:text-[13px] md:text-sm font-normal italic leading-relaxed max-w-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                    >
+                      {hoveredBird.info}
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="cue-banner"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 0.9, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ fontFamily: "'Andika', sans-serif" }}
+                  className="inline-flex items-center gap-2.5 bg-black/55 backdrop-blur-sm border border-white/10 px-4.5 py-1.5 rounded-full text-xs font-normal text-zinc-300 shadow-md"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#808C4C] animate-pulse" />
+                  <span>Hover or tap birds along the wetland to inspect</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Soft edge vignettes */}
       <div className="absolute inset-y-0 left-0 w-8 md:w-16 bg-gradient-to-r from-[#080c10]/40 to-transparent pointer-events-none z-20" />

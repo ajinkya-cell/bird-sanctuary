@@ -24,7 +24,7 @@ export default function WaterRippleCanvas({
   imageSrc,
   progress,
   className = "",
-  rippleIntensity = 0.028,
+  rippleIntensity = 0.016,
 }: WaterRippleCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const isSceneActiveRef = useRef(true);
@@ -138,6 +138,7 @@ export default function WaterRippleCanvas({
         }
 
         vec2 totalDisplacement = vec2(0.0);
+        float totalHighlight = 0.0;
         float aspect = uResolution.x / uResolution.y;
 
         // Iterate solely over active click drops
@@ -149,22 +150,33 @@ export default function WaterRippleCanvas({
           float intensity = drop.w;
           float dt = uTime - spawnTime;
 
-          if (dt >= 0.0 && dt < 2.5 && intensity > 0.0) {
+          if (dt >= 0.0 && dt < 2.0 && intensity > 0.0) {
             vec2 toDrop = vUv - drop.xy;
             toDrop.x *= aspect; // circular wave propagation on any viewport
             float dist = length(toDrop);
 
-            // Expanding wave radius over time
-            float speed = 0.65;
+            // Expanding wave radius over time: gentle natural water propagation
+            float speed = 0.26;
             float radius = dt * speed;
             float waveDist = dist - radius;
 
-            // Localized Gaussian wave packet envelope
-            float envelope = exp(-waveDist * waveDist * 60.0) * exp(-dt * 1.55) * intensity;
-            float wave = sin(waveDist * 40.0 - dt * 3.5) * envelope * uRippleIntensity;
+            // Concentric capillary ripple envelope: tight, delicate rings with distance damping
+            // exp(-waveDist * waveDist * 220.0) makes individual ring peaks thin and crisp
+            // exp(-radius * 4.2) keeps ripples localized and small (~15-20% radius max)
+            // exp(-dt * 2.0) creates smooth temporal dissipation
+            float spatialEnvelope = exp(-waveDist * waveDist * 220.0);
+            float distanceFalloff = exp(-radius * 4.2);
+            float temporalFalloff = exp(-dt * 2.0);
+            float envelope = spatialEnvelope * distanceFalloff * temporalFalloff * intensity;
+
+            // Higher spatial frequency for delicate multi-ring capillary waves
+            float wave = sin(waveDist * 85.0 - dt * 6.0) * envelope * uRippleIntensity;
 
             vec2 dir = (dist > 0.0001) ? (toDrop / dist) : vec2(0.0, 1.0);
             totalDisplacement += dir * wave;
+
+            // Subtle light reflection on wave crests
+            totalHighlight += max(0.0, wave * 55.0) * distanceFalloff * temporalFalloff;
           }
         }
 
@@ -175,6 +187,9 @@ export default function WaterRippleCanvas({
 
         vec4 waterColor = texture2D(uTexture, finalUV);
         waterColor.a *= waterMask;
+
+        // Delicate liquid light catch on ripple crests
+        waterColor.rgb += vec3(totalHighlight * 0.12 * waterMask);
 
         gl_FragColor = waterColor;
       }
@@ -236,8 +251,8 @@ export default function WaterRippleCanvas({
       time += 0.016;
       uniforms.uTime.value = time;
 
-      // Filter out expired drops (> 2.5 seconds)
-      activeDrops = activeDrops.filter((d) => time - d.spawnTime < 2.5);
+      // Filter out expired drops (> 2.0 seconds)
+      activeDrops = activeDrops.filter((d) => time - d.spawnTime < 2.0);
 
       // Pack active drops into uniform buffer
       for (let i = 0; i < MAX_DROPS; i++) {

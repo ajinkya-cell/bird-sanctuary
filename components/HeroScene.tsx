@@ -40,7 +40,7 @@ export default function HeroScene({ progress }: HeroSceneProps) {
       >
         {/* Layer 1: Static Base Front Artwork */}
         <Image
-          src="/front.png"
+          src="/frontnew.png"
           alt="Opening visual world"
           fill
           priority
@@ -52,7 +52,7 @@ export default function HeroScene({ progress }: HeroSceneProps) {
         {/* Layer 2: Water Layer Overlay (interactive ripples or static fallback) */}
         {shouldReduceMotion ? (
           <Image
-            src="/front-water.png"
+            src="/new-water.png"
             alt="Water surface"
             fill
             priority
@@ -62,11 +62,22 @@ export default function HeroScene({ progress }: HeroSceneProps) {
           />
         ) : (
           <WaterRippleCanvas
-            imageSrc="/front-water.png"
+            imageSrc="/new-water.png"
             progress={progress}
-            rippleIntensity={0.028}
+            rippleIntensity={0.016}
           />
         )}
+
+        {/* Layer 3: Water Highlight Overlay */}
+        <Image
+          src="/water-highlight.png"
+          alt="Water highlight"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center select-none pointer-events-none"
+          quality={100}
+        />
       </motion.div>
 
       {/* Interactive custom cursor & click marks */}
