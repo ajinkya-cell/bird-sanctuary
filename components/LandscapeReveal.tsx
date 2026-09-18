@@ -234,72 +234,63 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
         </div>
       </motion.div>
 
-      {/* Top-Middle Floating Information Card */}
+      {/* Top-Left Bird Information (Frameless Typography) */}
       <AnimatePresence>
         {isSceneActive && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed top-3 sm:top-5 md:top-6 left-1/2 -translate-x-1/2 z-40 w-[94vw] max-w-[460px] sm:max-w-[500px] md:max-w-[540px] pointer-events-none flex flex-col items-center"
+            className="fixed top-6 sm:top-8 md:top-10 left-6 sm:left-10 md:left-14 z-40 w-[90vw] max-w-md md:max-w-lg pointer-events-none flex flex-col items-start text-left"
           >
             <AnimatePresence mode="wait">
               {hoveredBird ? (
                 <motion.div
                   key={hoveredBird.id}
-                  initial={{ opacity: 0, y: -16, scale: 0.94 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.94 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                  className="pointer-events-auto relative w-full aspect-[889/670] flex items-center justify-center filter drop-shadow-[0_16px_36px_rgba(0,0,0,0.65)]"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="pointer-events-auto flex flex-col items-start text-left select-none"
                 >
-                  {/* Parchment Frame Artwork (info-box.png) */}
-                  <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
-                    <Image
-                      src="/info-box.png"
-                      alt="Bird information card"
-                      fill
-                      priority
-                      sizes="(max-width: 640px) 94vw, 540px"
-                      className="object-contain"
-                    />
-                  </div>
-
-                  {/* Inner Content Area */}
-                  <div
-                    style={{ fontFamily: "'Andika', sans-serif" }}
-                    className="relative z-10 w-full h-full px-[14%] pt-[18%] pb-[19%] flex flex-col items-center justify-center text-center select-none"
+                  {/* Bird Name in Cedarville Cursive (Black with subtle black text shadow) */}
+                  <h3
+                    style={{
+                      fontFamily: "var(--font-cedarville), 'Cedarville Cursive', cursive",
+                      textShadow: "0 1px 2px rgba(0, 0, 0, 0.22)",
+                    }}
+                    className="text-3xl sm:text-4xl md:text-5xl text-black font-normal tracking-wide mb-1.5 text-left"
                   >
-                    {/* Bird Name: Normal bold in #808C4C */}
-                    <h3
-                      style={{ color: "#808C4C" }}
-                      className="text-lg sm:text-2xl md:text-[26px] font-bold not-italic tracking-wide leading-tight mb-1 sm:mb-2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
-                    >
-                      {hoveredBird.name}
-                    </h3>
+                    {hoveredBird.name}
+                  </h3>
 
-                    {/* Information Text: Italics regular in #C6A1B8 */}
-                    <p
-                      style={{ color: "#C6A1B8" }}
-                      className="text-xs sm:text-[13px] md:text-sm font-normal italic leading-relaxed max-w-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
-                    >
-                      {hoveredBird.info}
-                    </p>
-                  </div>
+                  {/* Bird Information in Inter (Charcoal/Black with subtle black text shadow) */}
+                  <p
+                    style={{
+                      fontFamily: "var(--font-inter), 'Inter', sans-serif",
+                      textShadow: "0 1px 1px rgba(0, 0, 0, 0.15)",
+                    }}
+                    className="text-xs sm:text-sm md:text-[15px] font-normal text-zinc-900 leading-relaxed max-w-md text-left"
+                  >
+                    {hoveredBird.info}
+                  </p>
                 </motion.div>
               ) : (
                 <motion.div
                   key="cue-banner"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 0.9, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 0.85, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.2 }}
-                  style={{ fontFamily: "'Andika', sans-serif" }}
-                  className="inline-flex items-center gap-2.5 bg-black/55 backdrop-blur-sm border border-white/10 px-4.5 py-1.5 rounded-full text-xs font-normal text-zinc-300 shadow-md"
+                  style={{
+                    fontFamily: "var(--font-inter), 'Inter', sans-serif",
+                    textShadow: "0 1px 1px rgba(0, 0, 0, 0.15)",
+                  }}
+                  className="inline-flex items-center gap-2 text-xs font-normal text-zinc-800 text-left"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#808C4C] animate-pulse" />
-                  <span>Hover or tap birds along the wetland to inspect</span>
+                  <span>Hover over any bird to explore</span>
                 </motion.div>
               )}
             </AnimatePresence>

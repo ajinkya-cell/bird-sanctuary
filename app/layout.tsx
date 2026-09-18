@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Alegreya } from "next/font/google";
+import { Geist, Geist_Mono, Alegreya, Cedarville_Cursive, Inter } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,6 +18,17 @@ const alegreya = Alegreya({
   style: ["normal", "italic"],
 });
 
+const cedarvilleCursive = Cedarville_Cursive({
+  weight: "400",
+  variable: "--font-cedarville",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Nature's Cadence — An Interactive Visual Narrative",
   description: "A cinematic, interactive digital art piece and illustrated nature story.",
@@ -31,13 +42,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${alegreya.variable} h-full antialiased bg-[#080c10]`}
+      className={`${geistSans.variable} ${geistMono.variable} ${alegreya.variable} ${cedarvilleCursive.variable} ${inter.variable} h-full antialiased bg-[#080c10]`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

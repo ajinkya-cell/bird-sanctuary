@@ -56,7 +56,7 @@ export default function SkyScene({ progress }: SkySceneProps) {
         className="relative w-full h-full will-change-transform"
       >
         <Image
-          src="/sky.png"
+          src="/new-sky.png"
           alt="Open atmospheric sky"
           fill
           sizes="100vw"
