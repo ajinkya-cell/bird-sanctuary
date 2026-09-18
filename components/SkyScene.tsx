@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion, MotionValue, useTransform, useReducedMotion } from "framer-motion";
 import CloudLayer from "./CloudLayer";
@@ -11,6 +11,7 @@ interface SkySceneProps {
 }
 
 export default function SkyScene({ progress }: SkySceneProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [isSkyActive, setIsSkyActive] = useState(false);
 
@@ -42,6 +43,7 @@ export default function SkyScene({ progress }: SkySceneProps) {
 
   return (
     <motion.div
+      ref={containerRef}
       style={{
         opacity,
         pointerEvents: pointerEvents as unknown as React.CSSProperties["pointerEvents"],
@@ -73,12 +75,9 @@ export default function SkyScene({ progress }: SkySceneProps) {
         <CloudLayer progress={progress} depthFilter="foreground" />
       </div>
 
-      {/* Bird Layers (Always on top of all clouds) */}
-      <div className="absolute inset-0 pointer-events-none z-30">
-        <FlyingBirdLayer isActive={isSkyActive} depthFilter="midground" />
-      </div>
-      <div className="absolute inset-0 pointer-events-none z-40">
-        <FlyingBirdLayer isActive={isSkyActive} depthFilter="foreground" />
+      {/* Bird Layers (Unified draggable sticky bird flock on top of all clouds) */}
+      <div className="absolute inset-0 pointer-events-none z-35">
+        <FlyingBirdLayer isActive={isSkyActive} containerRef={containerRef} />
       </div>
 
       {/* Atmospheric Edge Vignettes */}

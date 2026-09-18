@@ -52,7 +52,7 @@ export default function HeroScene({ progress }: HeroSceneProps) {
         {/* Layer 2: Water Layer Overlay (interactive ripples or static fallback) */}
         {shouldReduceMotion ? (
           <Image
-            src="/new-water.png"
+            src="/new-water-again.png"
             alt="Water surface"
             fill
             priority
@@ -62,7 +62,7 @@ export default function HeroScene({ progress }: HeroSceneProps) {
           />
         ) : (
           <WaterRippleCanvas
-            imageSrc="/new-water.png"
+            imageSrc="/new-water-again.png"
             progress={progress}
             rippleIntensity={0.016}
           />

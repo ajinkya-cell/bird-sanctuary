@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, useMotionValue, animate } from "framer-motion";
 
 export interface SettledBirdConfig {
   id: string;
@@ -190,141 +190,296 @@ const BIRDS: SettledBirdConfig[] = [
 interface FlyingBirdLayerProps {
   isActive: boolean;
   depthFilter?: "foreground" | "midground" | "all";
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+interface DraggableStickyBirdProps {
+  bird: SettledBirdConfig;
+  isSettled: boolean;
+  hasTriggered: boolean;
+  shouldReduceMotion: boolean | null;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  zIndex: number;
+  onFlightComplete: (id: string) => void;
+  onStartDrag: (id: string) => void;
+  registerResetHandler: (id: string, resetFn: () => void) => void;
+}
+
+function DraggableStickyBird({
+  bird,
+  isSettled,
+  hasTriggered,
+  shouldReduceMotion,
+  containerRef,
+  zIndex,
+  onFlightComplete,
+  onStartDrag,
+  registerResetHandler,
+}: DraggableStickyBirdProps) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const resetPosition = useCallback(() => {
+    animate(x, 0, { type: "spring", stiffness: 220, damping: 20 });
+    animate(y, 0, { type: "spring", stiffness: 220, damping: 20 });
+  }, [x, y]);
+
+  useEffect(() => {
+    registerResetHandler(bird.id, resetPosition);
+  }, [bird.id, registerResetHandler, resetPosition]);
+
+  return (
+    <motion.div
+      initial={
+        shouldReduceMotion
+          ? {
+              left: `${bird.targetLeftPercent}%`,
+              top: `${bird.targetTopPercent}%`,
+              opacity: 1,
+              scale: bird.settleScale,
+              rotate: bird.rotationSettle,
+            }
+          : {
+              left: "0%",
+              top: bird.startY,
+              x: bird.startX,
+              y: 0,
+              opacity: 0,
+              scale: bird.startScale,
+              rotate: bird.rotationFlight,
+            }
+      }
+      animate={
+        shouldReduceMotion
+          ? { opacity: 1 }
+          : hasTriggered
+          ? {
+              left: `${bird.targetLeftPercent}%`,
+              top: `${bird.targetTopPercent}%`,
+              x: "0vw",
+              y: ["0vh", "-3.5vh", "0vh"],
+              opacity: [0, 0.95, 1, 1],
+              scale: [bird.startScale, bird.peakScale, bird.settleScale],
+              rotate: [
+                bird.rotationFlight,
+                bird.rotationFlight - 2,
+                bird.rotationSettle,
+              ],
+            }
+          : {
+              left: "0%",
+              top: bird.startY,
+              x: bird.startX,
+              opacity: 0,
+            }
+      }
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : {
+              duration: bird.flightDuration,
+              delay: bird.delay,
+              times: [0, 0.75, 1],
+              ease: [0.18, 1, 0.32, 1],
+            }
+      }
+      onAnimationComplete={() => onFlightComplete(bird.id)}
+      style={{
+        position: "absolute",
+        width: `clamp(${bird.baseSizePx * 0.7}px, ${bird.baseSizePx * 0.09}vh, ${bird.baseSizePx * 1.35}px)`,
+        height: "auto",
+        aspectRatio: "1/1",
+        transform: "translate(-50%, -50%)",
+        zIndex,
+        willChange: "transform, opacity, left, top",
+      }}
+      className="pointer-events-none"
+    >
+      {/* Draggable Sticky Container */}
+      <motion.div
+        style={{ x, y }}
+        drag={isSettled}
+        dragMomentum={false}
+        dragElastic={0.08}
+        dragConstraints={containerRef}
+        onPointerDown={() => {
+          if (isSettled) {
+            onStartDrag(bird.id);
+          }
+        }}
+        onDragStart={() => {
+          setIsDragging(true);
+          onStartDrag(bird.id);
+        }}
+        onDragEnd={() => {
+          setIsDragging(false);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          resetPosition();
+        }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        className={`relative w-full h-full select-none touch-none ${
+          isSettled
+            ? "pointer-events-auto cursor-grab active:cursor-grabbing"
+            : "pointer-events-none"
+        }`}
+      >
+        {/* Visual Artwork with Hover Lift and Peel Drag Aesthetics */}
+        <motion.div
+          animate={
+            isSettled && !isDragging && !shouldReduceMotion
+              ? {
+                  y: [-2.5, 2.5, -2.5],
+                  rotate: [
+                    bird.rotationSettle - 1.2,
+                    bird.rotationSettle + 1.2,
+                    bird.rotationSettle - 1.2,
+                  ],
+                }
+              : {}
+          }
+          whileHover={
+            isSettled && !isDragging
+              ? {
+                  scale: 1.08,
+                  y: -5,
+                  filter:
+                    "drop-shadow(0 14px 24px rgba(0,0,0,0.45)) drop-shadow(0 2px 6px rgba(0,0,0,0.25))",
+                  transition: { duration: 0.2 },
+                }
+              : {}
+          }
+          whileDrag={{
+            scale: 1.18,
+            rotate: bird.rotationSettle + (bird.depth === "foreground" ? 4 : -4),
+            filter:
+              "drop-shadow(0 24px 36px rgba(0,0,0,0.55)) drop-shadow(0 4px 10px rgba(0,0,0,0.3))",
+            transition: { duration: 0.15 },
+          }}
+          transition={{
+            y: { duration: 4.8, repeat: Infinity, ease: "easeInOut" },
+            rotate: { duration: 4.8, repeat: Infinity, ease: "easeInOut" },
+          }}
+          style={{
+            filter: "drop-shadow(0 8px 18px rgba(0,0,0,0.35))",
+          }}
+          className="relative w-full h-full select-none pointer-events-none transition-shadow"
+        >
+          <Image
+            src={bird.src}
+            alt={bird.alt}
+            fill
+            sizes="180px"
+            className="object-contain select-none pointer-events-none"
+            priority
+          />
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 export default function FlyingBirdLayer({
   isActive,
   depthFilter = "all",
+  containerRef,
 }: FlyingBirdLayerProps) {
   const shouldReduceMotion = useReducedMotion();
   const [hasTriggered, setHasTriggered] = useState(false);
   const [completedBirds, setCompletedBirds] = useState<Record<string, boolean>>({});
+  const [highestZIndex, setHighestZIndex] = useState(50);
+  const [birdZIndices, setBirdZIndices] = useState<Record<string, number>>({});
+  const [movedBirds, setMovedBirds] = useState<Record<string, boolean>>({});
+  const resetHandlersRef = useRef<Record<string, () => void>>({});
 
   useEffect(() => {
-    if (isActive && !hasTriggered) {
+    if (isActive) {
       setHasTriggered(true);
     }
-  }, [isActive, hasTriggered]);
+  }, [isActive]);
 
-  const handleFlightComplete = (id: string) => {
+  const handleFlightComplete = useCallback((id: string) => {
     setCompletedBirds((prev) => ({ ...prev, [id]: true }));
-  };
+  }, []);
+
+  const bringToFront = useCallback((id: string) => {
+    setHighestZIndex((prev) => {
+      const next = prev + 1;
+      setBirdZIndices((z) => ({ ...z, [id]: next }));
+      return next;
+    });
+    setMovedBirds((prev) => ({ ...prev, [id]: true }));
+  }, []);
+
+  const registerResetHandler = useCallback((id: string, handler: () => void) => {
+    resetHandlersRef.current[id] = handler;
+  }, []);
+
+  const handleResetAll = useCallback(() => {
+    Object.values(resetHandlersRef.current).forEach((fn) => fn?.());
+    setMovedBirds({});
+  }, []);
 
   const birdsToRender = BIRDS.filter(
     (bird) => depthFilter === "all" || bird.depth === depthFilter
   );
 
+  const isAnySettled = Object.values(completedBirds).some(Boolean);
+  const hasAnyMoved = Object.values(movedBirds).some(Boolean);
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
       {birdsToRender.map((bird) => {
-        const isSettled = completedBirds[bird.id];
+        const isSettled = !!completedBirds[bird.id];
+        const zIndex = birdZIndices[bird.id] ?? (bird.depth === "foreground" ? 25 : 15);
 
         return (
-          <motion.div
+          <DraggableStickyBird
             key={bird.id}
-            initial={
-              shouldReduceMotion
-                ? {
-                    left: `${bird.targetLeftPercent}%`,
-                    top: `${bird.targetTopPercent}%`,
-                    opacity: 1,
-                    scale: bird.settleScale,
-                    rotate: bird.rotationSettle,
-                  }
-                : {
-                    left: "0%",
-                    top: bird.startY,
-                    x: bird.startX,
-                    y: 0,
-                    opacity: 0,
-                    scale: bird.startScale,
-                    rotate: bird.rotationFlight,
-                  }
-            }
-            animate={
-              shouldReduceMotion
-                ? { opacity: 1 }
-                : hasTriggered
-                ? {
-                    left: `${bird.targetLeftPercent}%`,
-                    top: `${bird.targetTopPercent}%`,
-                    x: "0vw",
-                    y: ["0vh", "-3.5vh", "0vh"],
-                    opacity: [0, 0.95, 1, 1],
-                    // Dramatic scale approach: starts small in distance, expands as it comes closer, then settles
-                    scale: [bird.startScale, bird.peakScale, bird.settleScale],
-                    rotate: [
-                      bird.rotationFlight,
-                      bird.rotationFlight - 2,
-                      bird.rotationSettle,
-                    ],
-                  }
-                : {
-                    left: "0%",
-                    top: bird.startY,
-                    x: bird.startX,
-                    opacity: 0,
-                  }
-            }
-            transition={
-              shouldReduceMotion
-                ? { duration: 0 }
-                : {
-                    duration: bird.flightDuration,
-                    delay: bird.delay,
-                    times: [0, 0.75, 1],
-                    ease: [0.18, 1, 0.32, 1],
-                  }
-            }
-            onAnimationComplete={() => handleFlightComplete(bird.id)}
-            style={{
-              position: "absolute",
-              width: `clamp(${bird.baseSizePx * 0.7}px, ${bird.baseSizePx * 0.09}vh, ${bird.baseSizePx * 1.35}px)`,
-              height: "auto",
-              aspectRatio: "1/1",
-              transform: "translate(-50%, -50%)",
-              willChange: "transform, opacity, left, top",
-            }}
-            className="filter drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)] select-none pointer-events-auto group cursor-pointer"
-          >
-            {/* Ambient micro-soaring & thermal lift once settled in formation */}
-            <motion.div
-              animate={
-                isSettled && !shouldReduceMotion
-                  ? {
-                      y: [-3, 3, -3],
-                      rotate: [
-                        bird.rotationSettle - 1.2,
-                        bird.rotationSettle + 1.2,
-                        bird.rotationSettle - 1.2,
-                      ],
-                    }
-                  : {}
-              }
-              whileHover={{
-                scale: 1.12,
-                y: -6,
-                transition: { duration: 0.25 },
-              }}
-              transition={{
-                duration: 5.0,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="relative w-full h-full transition-transform"
-            >
-              <Image
-                src={bird.src}
-                alt={bird.alt}
-                fill
-                sizes="180px"
-                className="object-contain select-none pointer-events-none"
-                priority
-              />
-            </motion.div>
-          </motion.div>
+            bird={bird}
+            isSettled={isSettled}
+            hasTriggered={hasTriggered}
+            shouldReduceMotion={shouldReduceMotion}
+            containerRef={containerRef}
+            zIndex={zIndex}
+            onFlightComplete={handleFlightComplete}
+            onStartDrag={bringToFront}
+            registerResetHandler={registerResetHandler}
+          />
         );
       })}
+
+      {/* Subtle Sky Sticky Note Guidance Banner */}
+      <AnimatePresence>
+        {isAnySettled && (
+          <motion.div
+            key="sticky-cue-banner"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 0.95, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-auto inline-flex items-center gap-2.5 bg-black/60 backdrop-blur-md border border-white/15 px-4 py-2 rounded-full text-xs font-normal text-zinc-200 shadow-xl select-none"
+            style={{ fontFamily: "var(--font-inter), 'Inter', sans-serif" }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span>Hold and place birds anywhere like sticky notes</span>
+            {hasAnyMoved && (
+              <>
+                <span className="text-zinc-500">•</span>
+                <button
+                  onClick={handleResetAll}
+                  className="text-amber-300 hover:text-amber-200 font-medium transition-colors cursor-pointer underline-offset-2 hover:underline"
+                >
+                  Reset Flock
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
