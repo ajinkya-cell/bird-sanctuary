@@ -11,27 +11,27 @@ interface FinalSceneProps {
 export default function FinalScene({ progress }: FinalSceneProps) {
   const shouldReduceMotion = useReducedMotion();
 
-  // Smooth entrance from 0.90 to 1.0
-  const opacity = useTransform(progress, [0.90, 0.96, 1], [0, 1, 1]);
+  // Smooth entrance from 0.93 to 1.0
+  const opacity = useTransform(progress, [0.93, 0.97, 1], [0, 1, 1]);
   const logoScale = useTransform(
     progress,
-    [0.90, 0.98],
+    [0.93, 0.99],
     [shouldReduceMotion ? 1 : 0.94, 1]
   );
   const logoY = useTransform(
     progress,
-    [0.90, 0.98],
+    [0.93, 0.99],
     [shouldReduceMotion ? 0 : 25, 0]
   );
 
-  const textOpacity = useTransform(progress, [0.93, 0.99], [0, 0.9]);
+  const textOpacity = useTransform(progress, [0.95, 0.99], [0, 0.9]);
   const textY = useTransform(
     progress,
-    [0.93, 0.99],
+    [0.95, 0.99],
     [shouldReduceMotion ? 0 : 18, 0]
   );
 
-  const pointerEvents = useTransform(progress, (p) => (p >= 0.90 ? "auto" : "none"));
+  const pointerEvents = useTransform(progress, (p) => (p >= 0.93 ? "auto" : "none"));
 
   return (
     <motion.div
@@ -64,26 +64,50 @@ export default function FinalScene({ progress }: FinalSceneProps) {
           />
         </motion.div>
 
-        {/* Restrained, elegant conclusion text */}
+        {/* Restrained, elegant conclusion invitation */}
         <motion.div
           style={{
             opacity: textOpacity,
             y: textY,
           }}
-          className="flex flex-col items-center space-y-3"
+          className="flex items-center justify-center text-center px-4"
         >
-          <p className="text-sm md:text-base tracking-[0.25em] uppercase text-zinc-300 font-light font-sans">
-            In the quiet cadence of nature
-          </p>
-          <p className="text-xs md:text-sm tracking-[0.18em] text-zinc-500 font-light font-sans">
-            An illustrated visual journey
+          <p
+            style={{
+              fontFamily: "var(--font-inter), 'Inter', sans-serif",
+            }}
+            className="text-base md:text-lg text-zinc-300 font-light tracking-wide inline-flex flex-wrap items-center justify-center gap-x-2"
+          >
+            <span className="uppercase">Experience nature once again at</span>
+            <span className="inline-flex items-center gap-1.5 sm:gap-2">
+              <span
+                style={{
+                  fontFamily: "var(--font-cedarville), 'Cedarville Cursive', cursive",
+                  textShadow: "0 2px 12px rgba(254, 243, 199, 0.25)",
+                }}
+                className="text-2xl sm:text-3xl md:text-4xl text-amber-100/95 font-normal tracking-wider"
+              >
+                Keoladeo
+              </span>
+              {/* Tilted flower flourish */}
+              <span
+                className="relative inline-block -translate-x-10 -translate-y-5 w-20 h-20  select-none pointer-events-none origin-bottom-left -mt-1"
+                style={{
+                  transform: "rotate(18deg)",
+                  filter: "drop-shadow(0 2px 8px rgba(244, 114, 182, 0.28))",
+                }}
+              >
+                <Image
+                  src="/flower.png"
+                  alt="Flower"
+                  fill
+                  sizes="48px"
+                  className="object-contain object-bottom select-none pointer-events-none"
+                />
+              </span>
+            </span>
           </p>
         </motion.div>
-      </div>
-
-      {/* Bottom subtle baseline */}
-      <div className="absolute bottom-8 text-center text-[11px] tracking-[0.2em] text-zinc-700 uppercase font-mono pointer-events-none">
-        End of Journey
       </div>
     </motion.div>
   );

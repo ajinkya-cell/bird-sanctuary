@@ -191,6 +191,7 @@ interface FlyingBirdLayerProps {
   isActive: boolean;
   depthFilter?: "foreground" | "midground" | "all";
   containerRef?: React.RefObject<HTMLDivElement | null>;
+  onFlightStateChange?: (isFlying: boolean, isComplete: boolean) => void;
 }
 
 interface DraggableStickyBirdProps {
@@ -386,6 +387,7 @@ export default function FlyingBirdLayer({
   isActive,
   depthFilter = "all",
   containerRef,
+  onFlightStateChange,
 }: FlyingBirdLayerProps) {
   const shouldReduceMotion = useReducedMotion();
   const [hasTriggered, setHasTriggered] = useState(false);
@@ -395,11 +397,39 @@ export default function FlyingBirdLayer({
   const [movedBirds, setMovedBirds] = useState<Record<string, boolean>>({});
   const resetHandlersRef = useRef<Record<string, () => void>>({});
 
+  const birdsToRender = BIRDS.filter(
+    (bird) => depthFilter === "all" || bird.depth === depthFilter
+  );
+
   useEffect(() => {
     if (isActive) {
       setHasTriggered(true);
+      onFlightStateChange?.(true, false);
+    } else {
+      setHasTriggered(false);
+      setCompletedBirds({});
+      onFlightStateChange?.(false, false);
     }
-  }, [isActive]);
+  }, [isActive, onFlightStateChange]);
+
+  // Check when all birds complete their flight
+  useEffect(() => {
+    if (!hasTriggered) return;
+    const allCompleted = birdsToRender.length > 0 && birdsToRender.every((b) => completedBirds[b.id]);
+    if (allCompleted) {
+      onFlightStateChange?.(false, true);
+    }
+  }, [completedBirds, birdsToRender, hasTriggered, onFlightStateChange]);
+
+  // Fallback safety timer matching max flight duration (3.8s delay + 10.2s duration = 14.0s)
+  useEffect(() => {
+    if (!hasTriggered) return;
+    const maxDuration = Math.max(...birdsToRender.map((b) => b.delay + b.flightDuration)) * 1000 + 400;
+    const timer = setTimeout(() => {
+      onFlightStateChange?.(false, true);
+    }, maxDuration);
+    return () => clearTimeout(timer);
+  }, [hasTriggered, birdsToRender, onFlightStateChange]);
 
   const handleFlightComplete = useCallback((id: string) => {
     setCompletedBirds((prev) => ({ ...prev, [id]: true }));
@@ -423,9 +453,6 @@ export default function FlyingBirdLayer({
     setMovedBirds({});
   }, []);
 
-  const birdsToRender = BIRDS.filter(
-    (bird) => depthFilter === "all" || bird.depth === depthFilter
-  );
 
   const isAnySettled = Object.values(completedBirds).some(Boolean);
   const hasAnyMoved = Object.values(movedBirds).some(Boolean);

@@ -15,12 +15,12 @@ export default function HeroScene({ progress }: HeroSceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
-  // Active from progress 0 to 0.12
+  // Active from progress 0 to 0.08
   // Natural vertical slide upwards as user scrolls down
-  const y = useTransform(progress, [0, 0.12], ["0%", "-100%"]);
-  const opacity = useTransform(progress, (p) => (p >= 0.12 ? 0 : 1));
+  const y = useTransform(progress, [0, 0.08], ["0%", "-100%"]);
+  const opacity = useTransform(progress, (p) => (p >= 0.08 ? 0 : 1));
   
-  const pointerEvents = useTransform(progress, (p) => (p >= 0.12 ? "none" : "auto"));
+  const pointerEvents = useTransform(progress, (p) => (p >= 0.08 ? "none" : "auto"));
 
 
 
@@ -34,9 +34,37 @@ export default function HeroScene({ progress }: HeroSceneProps) {
       }}
       className="absolute inset-0 w-full h-full overflow-hidden bg-[#ede7dd] cursor-none select-none z-30 will-change-transform"
     >
+      {/* Top Title: Welcome to the world of \n Kaladev */}
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.1, ease: "easeOut", delay: 0.2 }}
+        className="absolute top-6 sm:top-8 md:top-10 inset-x-0 z-20 flex flex-col items-center justify-center text-center pointer-events-none px-4 select-none"
+      >
+        <h1 className="flex flex-col items-center text-center tracking-[0.02em]">
+          <span
+            style={{
+              fontFamily: "var(--font-alegreya), 'Alegreya', Georgia, serif",
+              textShadow: "0 2px 8px rgba(46, 38, 31, 0.22), 0 1px 2px rgba(0, 0, 0, 0.16)",
+            }}
+            className="text-xl sm:text-2xl pt-20 md:text-4xl lg:text-[42px] font-normal text-[#2e261f] leading-tight"
+          >
+            Welcome to the true avian paradise
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-cedarville), 'Cedarville Cursive', cursive",
+              filter: "drop-shadow(0 2px 4px rgba(125, 81, 40, 0.18))",
+            }}
+            className="font-normal text-4xl sm:text-5xl md:text-6xl lg:text-8xl bg-gradient-to-r from-[#2d241e] via-[#7d5128] to-[#be8235] bg-clip-text text-transparent mt-1 sm:mt-2 leading-tight"
+          >
+            Keoladeo
+          </span>
+        </h1>
+      </motion.header>
+
       {/* Fullscreen Base Artwork and Water (Edge-to-edge covering full desktop space) */}
       <motion.div
-        
         className="relative w-full h-full will-change-transform overflow-hidden select-none"
       >
         {/* Layer 1: Static Base Front Artwork (Edge-to-edge cover anchored to bottom) */}

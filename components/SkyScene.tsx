@@ -8,37 +8,41 @@ import FlyingBirdLayer from "./FlyingBirdLayer";
 
 interface SkySceneProps {
   progress: MotionValue<number>;
+  onBirdFlightStateChange?: (isFlying: boolean, isComplete: boolean) => void;
 }
 
-export default function SkyScene({ progress }: SkySceneProps) {
+export default function SkyScene({ progress, onBirdFlightStateChange }: SkySceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [isSkyActive, setIsSkyActive] = useState(false);
 
   useEffect(() => {
     const unsubscribe = progress.on("change", (latest) => {
-      if (latest >= 0.70) {
+      // Trigger bird flight only after the whole scene 3 is visible on the page (>= 0.46)
+      if (latest >= 0.46) {
         setIsSkyActive(true);
+      } else if (latest < 0.44) {
+        setIsSkyActive(false);
       }
     });
     return () => unsubscribe();
   }, [progress]);
 
-  // Smooth entrance and exit opacities across extended runway
+  // Smooth entrance and exit opacities calibrated for TransitionScene2
   const opacity = useTransform(
     progress,
-    [0.72, 0.78, 0.90, 0.95],
+    [0.44, 0.48, 0.58, 0.62],
     [0, 1, 1, 0]
   );
 
   const skyScale = useTransform(
     progress,
-    [0.72, 0.84, 0.95],
+    [0.44, 0.50, 0.62],
     [shouldReduceMotion ? 1 : 1.05, 1, shouldReduceMotion ? 1 : 1.03]
   );
 
   const pointerEvents = useTransform(progress, (p) =>
-    p >= 0.72 && p <= 0.94 ? "auto" : "none"
+    p >= 0.46 && p <= 0.58 ? "auto" : "none"
   );
 
   return (
@@ -77,7 +81,11 @@ export default function SkyScene({ progress }: SkySceneProps) {
 
       {/* Bird Layers (Unified draggable sticky bird flock on top of all clouds) */}
       <div className="absolute inset-0 pointer-events-none z-35">
-        <FlyingBirdLayer isActive={isSkyActive} containerRef={containerRef} />
+        <FlyingBirdLayer
+          isActive={isSkyActive}
+          containerRef={containerRef}
+          onFlightStateChange={onBirdFlightStateChange}
+        />
       </div>
 
       {/* Atmospheric Edge Vignettes */}
