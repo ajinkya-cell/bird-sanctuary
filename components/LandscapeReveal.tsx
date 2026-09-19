@@ -123,36 +123,36 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
   // Track if scene is currently visible in viewport to show/hide top-middle overlay
   useEffect(() => {
     const unsub = progress.on("change", (v) => {
-      setIsSceneActive(v >= 0.14 && v <= 0.76);
+      setIsSceneActive(v >= 0.28 && v <= 0.76);
     });
     return () => unsub();
   }, [progress]);
 
   // Scene 2 vertical entrance & exit:
-  // Rises into position from 0.00 to 0.18, stays pinned until 0.72, then slight upward drift
+  // Rises into position from 0.18 to 0.30, stays pinned until 0.72, then slight upward drift
   const y = useTransform(
     progress,
-    [0, 0.18, 0.72, 0.78],
-    ["100%", "0%", "0%", "-8%"]
+    [0, 0.18, 0.30, 0.72, 0.78],
+    ["100%", "100%", "0%", "0%", "-8%"]
   );
 
   // Horizontal pan:
   // Smoothly and continuously translates across the panoramic wetland as user scrolls
   const x = useTransform(
     progress,
-    [0, 0.18, 0.72, 1],
+    [0, 0.30, 0.72, 1],
     [0, 0, -maxScrollX, -maxScrollX]
   );
 
-  // Overall scene opacity: visible from 0.00 to 0.78
+  // Overall scene opacity: visible from 0.18 to 0.78
   const opacity = useTransform(
     progress,
-    [0, 0.02, 0.72, 0.78],
-    [1, 1, 1, 0]
+    [0.179, 0.18, 0.72, 0.78],
+    [0, 1, 1, 0]
   );
 
   const pointerEvents = useTransform(progress, (p) =>
-    p >= 0.14 && p <= 0.76 ? "auto" : "none"
+    p >= 0.28 && p <= 0.76 ? "auto" : "none"
   );
 
   return (
@@ -299,8 +299,7 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
       </AnimatePresence>
 
       {/* Soft edge vignettes */}
-      <div className="absolute inset-y-0 left-0 w-8 md:w-16 bg-gradient-to-r from-[#080c10]/40 to-transparent pointer-events-none z-20" />
-      <div className="absolute inset-y-0 right-0 w-8 md:w-16 bg-gradient-to-l from-[#080c10]/40 to-transparent pointer-events-none z-20" />
+      
     </motion.div>
   );
 }

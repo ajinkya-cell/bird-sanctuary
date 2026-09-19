@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useMotionValue, useSpring } from "framer-motion";
 import HeroScene from "./HeroScene";
+import TransitionScene from "./TransitionScene";
 import LandscapeReveal from "./LandscapeReveal";
 import SkyScene from "./SkyScene";
 import FinalScene from "./FinalScene";
@@ -99,10 +100,13 @@ export default function ScrollController() {
       ref={containerRef}
       className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#080c10] text-[#e4e7eb] select-none touch-none"
     >
-      {/* Scene 01: Fullscreen Opening Base Image (0.00 -> 0.18) */}
+      {/* Scene 01: Fullscreen Opening Base Image (0.00 -> 0.12) */}
       <HeroScene progress={smoothProgress} />
 
-      {/* Scene 02: Fixed Viewport Landscape Horizontal Pan & Bird Showcase (0.00 -> 0.78) */}
+      {/* Intermediate Transition Image (0.00 -> 0.30) */}
+      <TransitionScene progress={smoothProgress} />
+
+      {/* Scene 02: Fixed Viewport Landscape Horizontal Pan & Bird Showcase (0.18 -> 0.78) */}
       <LandscapeReveal progress={smoothProgress} />
 
       {/* Scene 03: Open Sky with Static Clouds & Flight Settling Birds (0.72 -> 0.95) */}

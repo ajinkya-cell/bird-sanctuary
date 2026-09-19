@@ -61,6 +61,12 @@ export default function WaterRippleCanvas({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x000000, 0);
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.top = "0";
+    renderer.domElement.style.left = "0";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
     container.appendChild(renderer.domElement);
 
     // 3. Drops Management & Uniforms
@@ -73,7 +79,7 @@ export default function WaterRippleCanvas({
       uTexture: { value: null as THREE.Texture | null },
       uTime: { value: 0 },
       uResolution: { value: new THREE.Vector2(width, height) },
-      uImageResolution: { value: new THREE.Vector2(1920, 1080) },
+      uImageResolution: { value: new THREE.Vector2(1919, 1080) },
       uDrops: { value: dropsArray },
       uActiveDrops: { value: 0 },
       uRippleIntensity: { value: rippleIntensity },
@@ -116,20 +122,24 @@ export default function WaterRippleCanvas({
       uniform float uRippleIntensity;
       varying vec2 vUv;
 
-      // Aspect-ratio preserving UV mapping
-      vec2 getCoverUV(vec2 uv, vec2 screenRes, vec2 imgRes) {
+      // Aspect-ratio preserving UV mapping anchored to bottom
+      vec2 getCoverUVBottom(vec2 uv, vec2 screenRes, vec2 imgRes) {
         float screenAspect = screenRes.x / screenRes.y;
         float imgAspect = imgRes.x / imgRes.y;
-        vec2 scale = vec2(
-          min(screenAspect / imgAspect, 1.0),
-          min(imgAspect / screenAspect, 1.0)
-        );
-        return (uv - 0.5) * scale + 0.5;
+        if (screenAspect >= imgAspect) {
+          // Screen wider than image: fill width, crop top, anchor bottom
+          float scaleY = imgAspect / screenAspect;
+          return vec2(uv.x, uv.y * scaleY);
+        } else {
+          // Screen taller than image: fill height, crop sides, anchor center horizontally
+          float scaleX = screenAspect / imgAspect;
+          return vec2((uv.x - 0.5) * scaleX + 0.5, uv.y);
+        }
       }
 
       void main() {
-        vec2 uv = getCoverUV(vUv, uResolution, uImageResolution);
-        vec4 baseWater = texture2D(uTexture, uv);
+        vec2 baseUV = getCoverUVBottom(vUv, uResolution, uImageResolution);
+        vec4 baseWater = texture2D(uTexture, baseUV);
 
         // If pixel is outside water area, keep canvas completely transparent
         if (baseWater.a <= 0.001) {
@@ -161,9 +171,6 @@ export default function WaterRippleCanvas({
             float waveDist = dist - radius;
 
             // Concentric capillary ripple envelope: tight, delicate rings with distance damping
-            // exp(-waveDist * waveDist * 220.0) makes individual ring peaks thin and crisp
-            // exp(-radius * 4.2) keeps ripples localized and small (~15-20% radius max)
-            // exp(-dt * 2.0) creates smooth temporal dissipation
             float spatialEnvelope = exp(-waveDist * waveDist * 220.0);
             float distanceFalloff = exp(-radius * 4.2);
             float temporalFalloff = exp(-dt * 2.0);
@@ -173,7 +180,10 @@ export default function WaterRippleCanvas({
             float wave = sin(waveDist * 85.0 - dt * 6.0) * envelope * uRippleIntensity;
 
             vec2 dir = (dist > 0.0001) ? (toDrop / dist) : vec2(0.0, 1.0);
-            totalDisplacement += dir * wave;
+
+            // Convert aspect-corrected direction back to normalized screen UV space
+            vec2 screenDir = vec2(dir.x / aspect, dir.y);
+            totalDisplacement += screenDir * wave;
 
             // Subtle light reflection on wave crests
             totalHighlight += max(0.0, wave * 55.0) * distanceFalloff * temporalFalloff;
@@ -182,7 +192,8 @@ export default function WaterRippleCanvas({
 
         // Feather near shoreline to prevent water spilling over land
         float waterMask = smoothstep(0.01, 0.12, baseWater.a);
-        vec2 finalUV = uv + totalDisplacement * waterMask;
+        vec2 displacedScreenUv = vUv + totalDisplacement * waterMask;
+        vec2 finalUV = getCoverUVBottom(displacedScreenUv, uResolution, uImageResolution);
         finalUV = clamp(finalUV, 0.0, 1.0);
 
         vec4 waterColor = texture2D(uTexture, finalUV);
@@ -231,11 +242,21 @@ export default function WaterRippleCanvas({
 
     const handleResize = () => {
       if (!container) return;
-      width = container.clientWidth || window.innerWidth;
-      height = container.clientHeight || window.innerHeight;
-      renderer.setSize(width, height);
-      uniforms.uResolution.value.set(width, height);
+      const rect = container.getBoundingClientRect();
+      const newWidth = Math.round(rect.width || container.clientWidth);
+      const newHeight = Math.round(rect.height || container.clientHeight);
+      if (newWidth > 0 && newHeight > 0 && (newWidth !== width || newHeight !== height)) {
+        width = newWidth;
+        height = newHeight;
+        renderer.setSize(width, height);
+        uniforms.uResolution.value.set(width, height);
+      }
     };
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(container);
 
     const domElement = renderer.domElement;
     domElement.addEventListener("pointerdown", handlePointerDown);
@@ -280,6 +301,7 @@ export default function WaterRippleCanvas({
     return () => {
       cancelAnimationFrame(animationFrameId);
       domElement.removeEventListener("pointerdown", handlePointerDown);
+      resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
 
       if (container.contains(domElement)) {
