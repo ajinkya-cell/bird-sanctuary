@@ -1,9 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'KunstlerScript';
+  src: url('/font.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #080c10;
   --foreground: #e4e7eb;
+  --font-kunstler: 'KunstlerScript', cursive;
 }
 
 @theme inline {

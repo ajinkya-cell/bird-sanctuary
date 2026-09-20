@@ -34,34 +34,24 @@ export default function HeroScene({ progress }: HeroSceneProps) {
       }}
       className="absolute inset-0 w-full h-full overflow-hidden bg-[#ede7dd] cursor-none select-none z-30 will-change-transform"
     >
-      {/* Top Title: Welcome to the world of \n Kaladev */}
-      <motion.header
-        initial={{ opacity: 0, y: -12 }}
+      {/* Calligraphy Title: In the range of Aravali.... */}
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.1, ease: "easeOut", delay: 0.2 }}
-        className="absolute top-6 sm:top-8 md:top-10 inset-x-0 z-20 flex flex-col items-center justify-center text-center pointer-events-none px-4 select-none"
+        transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+        className="absolute top-[12%] sm:top-[13.5%] md:top-[15.5%] left-[5%] sm:left-[6.5%] md:left-[7.7%] z-20 pointer-events-none select-none"
       >
-        <h1 className="flex flex-col items-center text-center tracking-[0.02em]">
-          <span
-            style={{
-              fontFamily: "var(--font-alegreya), 'Alegreya', Georgia, serif",
-              textShadow: "0 2px 8px rgba(46, 38, 31, 0.22), 0 1px 2px rgba(0, 0, 0, 0.16)",
-            }}
-            className="text-xl sm:text-2xl pt-20 md:text-4xl lg:text-[42px] font-normal text-[#2e261f] leading-tight"
-          >
-            Welcome to the true avian paradise
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-cedarville), 'Cedarville Cursive', cursive",
-              filter: "drop-shadow(0 2px 4px rgba(125, 81, 40, 0.18))",
-            }}
-            className="font-normal text-4xl sm:text-5xl md:text-6xl lg:text-8xl bg-gradient-to-r from-[#2d241e] via-[#7d5128] to-[#be8235] bg-clip-text text-transparent mt-1 sm:mt-2 leading-tight"
-          >
-            Keoladeo
-          </span>
+        <h1
+          style={{
+            fontFamily: "var(--font-kunstler), 'KunstlerScript', cursive",
+            color: "#5b3238",
+            textShadow: "0 1px 2px rgba(255, 255, 255, 0.4)",
+          }}
+          className="text-2xl sm:text-3xl md:text-4xl -translate-y-10 lg:text-[44px] xl:text-[48px] font-normal leading-none tracking-normal whitespace-nowrap"
+        >
+          • In the range of Aravali....
         </h1>
-      </motion.header>
+      </motion.div>
 
       {/* Fullscreen Base Artwork and Water (Edge-to-edge covering full desktop space) */}
       <motion.div
@@ -108,6 +98,18 @@ export default function HeroScene({ progress }: HeroSceneProps) {
           sizes="100vw"
           style={{ objectFit: "cover", objectPosition: "center bottom" }}
           className="object-cover object-bottom select-none pointer-events-none"
+          quality={100}
+        />
+
+        {/* Layer 4: Sanctuary Seal & Flying Birds Overlay */}
+        <Image
+          src="/san-logo.png"
+          alt="Keoladeo Sanctuary Seal and Flying Birds"
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: "cover", objectPosition: "center" }}
+          className="object-cover select-none pointer-events-none"
           quality={100}
         />
 
