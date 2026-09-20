@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, MotionValue, useTransform, useReducedMotion } from "framer-motion";
+import ButterflyFollower from "./ButterflyFollower";
 
 const IMAGE_NATIVE_WIDTH = 4055;
 const IMAGE_NATIVE_HEIGHT = 1080;
@@ -298,8 +299,8 @@ export default function LandscapeReveal({ progress }: LandscapeRevealProps) {
         )}
       </AnimatePresence>
 
-      {/* Soft edge vignettes */}
-      
+      {/* Animated butterfly cursor follower */}
+      <ButterflyFollower active={isSceneActive} />
     </motion.div>
   );
 }

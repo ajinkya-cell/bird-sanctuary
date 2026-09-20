@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { motion, MotionValue, useTransform, useReducedMotion, AnimatePresence } from "framer-motion";
+import ButterflyFollower from "./ButterflyFollower";
 
 // Panoramic aspect ratio calibrated for winter.png (4055 x 1080 px)
 const ASPECT_RATIO = 4055 / 1080;
@@ -296,6 +297,9 @@ export default function WinterScene({ progress }: WinterSceneProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Animated butterfly cursor follower */}
+      <ButterflyFollower active={isSceneActive} />
     </motion.div>
   );
 }

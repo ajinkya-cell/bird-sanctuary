@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, MotionValue, useTransform, useReducedMotion } from "framer-motion";
+import DragonflyFollower from "./DragonflyFollower";
 
 interface FinalSceneProps {
   progress: MotionValue<number>;
@@ -10,6 +11,14 @@ interface FinalSceneProps {
 
 export default function FinalScene({ progress }: FinalSceneProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [isFinalActive, setIsFinalActive] = useState(false);
+
+  useEffect(() => {
+    const unsub = progress.on("change", (v) => {
+      setIsFinalActive(v >= 0.93);
+    });
+    return () => unsub();
+  }, [progress]);
 
   // Smooth entrance from 0.93 to 1.0
   const opacity = useTransform(progress, [0.93, 0.97, 1], [0, 1, 1]);
@@ -109,6 +118,9 @@ export default function FinalScene({ progress }: FinalSceneProps) {
           </p>
         </motion.div>
       </div>
+
+      {/* Subtle dragonfly cursor follower */}
+      <DragonflyFollower active={isFinalActive} />
     </motion.div>
   );
 }

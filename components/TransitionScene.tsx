@@ -54,10 +54,10 @@ export default function TransitionScene({ progress }: TransitionSceneProps) {
             className="text-base sm:text-lg md:text-xl lg:text-[22px] text-[#79833B] italic font-normal    text-center"
           >
             <span className="block">
-              The monsoon brings rain to Keoladeo, filling the wetlands with water. The landscape turns green and food becomes abundant.
+              • The monsoon brings rain to Keoladeo, filling the wetlands with water. The landscape turns green and food becomes abundant.
             </span>
             <span className="block mt-1 sm:mt-1.5">
-              Resident birds such as Painted Storks, Herons, Egrets and Ibises begin breeding, making the wetland full of nests, chicks and activity.
+              • Resident birds such as Painted Storks, Herons, Egrets and Ibises begin breeding, making the wetland full of nests, chicks and activity.
             </span>
           </p>
         </div>

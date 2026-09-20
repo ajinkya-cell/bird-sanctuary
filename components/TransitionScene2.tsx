@@ -57,10 +57,10 @@ export default function TransitionScene2({ progress }: TransitionScene2Props) {
             className="text-base sm:text-lg md:text-xl lg:text-[22px] text-[#5C7F9F] italic font-normal  text-center"
           >
             <span className="block">
-              During winter, Keoladeo becomes a temporary home for thousands of migratory birds.  Bar-headed Geese, Greylag Geese, 
+              • During winter, Keoladeo becomes a temporary home for thousands of migratory birds.  Bar-headed Geese, Greylag Geese, 
             </span>
             <span className="block mt-1 sm:mt-1.5">
-             Northern Pintails, Gadwalls, Wigeons, pelicans and many other birds gather in its wetlands to feed, rest and survive the cold months.
+             • Northern Pintails, Gadwalls, Wigeons, pelicans and many other birds gather in its wetlands to feed, rest and survive the cold months.
             </span>
           </p>
         </div>
