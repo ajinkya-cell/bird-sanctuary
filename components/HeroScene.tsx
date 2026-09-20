@@ -231,6 +231,25 @@ export default function HeroScene({ progress }: HeroSceneProps) {
         />
       </motion.div>
 
+      {/* Bottom Right Interaction Hint in font Inter */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.65 }}
+        transition={{ duration: 1.2, ease: "easeOut", delay: 0.4 }}
+        className="absolute bottom-6 sm:bottom-8 right-6 sm:right-8 md:right-10 z-30 pointer-events-none select-none"
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-inter), 'Inter', sans-serif",
+            color: "#000000",
+           
+          }}
+          className="text-sm translate-y-5 translate-x-5 font-normal font-semibold tracking-wide"
+        >
+          Click and Hover for interactions on leaves and water
+        </p>
+      </motion.div>
+
       {/* Interactive custom cursor & click marks */}
       <ClickCursor containerRef={containerRef} progress={progress} />
     </motion.div>
