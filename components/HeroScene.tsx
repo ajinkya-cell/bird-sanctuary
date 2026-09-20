@@ -83,7 +83,8 @@ export default function HeroScene({ progress }: HeroSceneProps) {
           />
         ) : (
           <WaterRippleCanvas
-            imageSrc="/new-water-again.png"
+            baseImageSrc="/frontnew.png"
+            waterImageSrc="/new-water-again.png"
             progress={progress}
             rippleIntensity={0.016}
           />

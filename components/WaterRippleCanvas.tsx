@@ -6,7 +6,9 @@ import * as THREE from "three";
 import { MotionValue } from "framer-motion";
 
 interface WaterRippleCanvasProps {
-  imageSrc: string;
+  baseImageSrc?: string;
+  waterImageSrc?: string;
+  imageSrc?: string; // backwards compatibility
   progress?: MotionValue<number>;
   className?: string;
   rippleIntensity?: number;
@@ -22,7 +24,9 @@ interface RippleDrop {
 const MAX_DROPS = 8;
 
 export default function WaterRippleCanvas({
-  imageSrc,
+  baseImageSrc = "/frontnew.png",
+  waterImageSrc,
+  imageSrc = "/new-water-again.png",
   progress,
   className = "",
   rippleIntensity = 0.016,
@@ -30,6 +34,9 @@ export default function WaterRippleCanvas({
   const mountRef = useRef<HTMLDivElement>(null);
   const isSceneActiveRef = useRef(true);
   const [webGLError, setWebGLError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const actualWaterSrc = waterImageSrc || imageSrc;
 
   // Monitor scene progress to pause WebGL rendering loop when scrolled past Scene 1
   useEffect(() => {
@@ -52,24 +59,29 @@ export default function WaterRippleCanvas({
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
     camera.position.z = 1;
 
-    // 2. WebGL Renderer with straight alpha compositing
+    // 2. WebGL Renderer
+    // When baseImageSrc is supplied, we perform in-shader composition and use an
+    // opaque canvas (alpha: false). This permanently eliminates all OS/D3D11 compositor
+    // premultiplied alpha discrepancies that cause water to turn bluish-black on Windows laptops.
+    const hasBaseImage = Boolean(baseImageSrc);
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        alpha: true,
+        alpha: !hasBaseImage,
         premultipliedAlpha: false,
         powerPreference: "high-performance",
         precision: "highp",
       });
-    } catch {
+    } catch (err) {
+      console.warn("WebGL initialization failed, falling back to static water image", err);
       setWebGLError(true);
       return;
     }
 
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0x000000, hasBaseImage ? 1 : 0);
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.top = "0";
     renderer.domElement.style.left = "0";
@@ -85,7 +97,9 @@ export default function WaterRippleCanvas({
 
     const textureLoader = new THREE.TextureLoader();
     const uniforms = {
-      uTexture: { value: null as THREE.Texture | null },
+      uBaseTexture: { value: null as THREE.Texture | null },
+      uWaterTexture: { value: null as THREE.Texture | null },
+      uHasBase: { value: hasBaseImage ? 1.0 : 0.0 },
       uTime: { value: 0 },
       uResolution: { value: new THREE.Vector2(width, height) },
       uImageResolution: { value: new THREE.Vector2(1919, 1080) },
@@ -94,25 +108,53 @@ export default function WaterRippleCanvas({
       uRippleIntensity: { value: rippleIntensity },
     };
 
-    const texture = textureLoader.load(imageSrc, (loadedTex) => {
-      loadedTex.magFilter = THREE.LinearFilter;
-      loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
-      loadedTex.wrapS = THREE.ClampToEdgeWrapping;
-      loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-      loadedTex.generateMipmaps = true;
-      loadedTex.premultiplyAlpha = false;
-      loadedTex.needsUpdate = true;
+    let baseLoaded = !hasBaseImage;
+    let waterLoaded = false;
 
-      if (loadedTex.image) {
+    const checkBothLoaded = () => {
+      if (baseLoaded && waterLoaded) {
+        setIsLoaded(true);
+      }
+    };
+
+    // Load Base Landscape Texture if provided
+    let baseTexture: THREE.Texture | null = null;
+    if (baseImageSrc) {
+      baseTexture = textureLoader.load(baseImageSrc, (loadedBase) => {
+        loadedBase.magFilter = THREE.LinearFilter;
+        loadedBase.minFilter = THREE.LinearMipmapLinearFilter;
+        loadedBase.wrapS = THREE.ClampToEdgeWrapping;
+        loadedBase.wrapT = THREE.ClampToEdgeWrapping;
+        loadedBase.generateMipmaps = true;
+        loadedBase.needsUpdate = true;
+
+        uniforms.uBaseTexture.value = loadedBase;
+        baseLoaded = true;
+        checkBothLoaded();
+      });
+    }
+
+    // Load Water Overlay Texture
+    const waterTexture = textureLoader.load(actualWaterSrc, (loadedWater) => {
+      loadedWater.magFilter = THREE.LinearFilter;
+      loadedWater.minFilter = THREE.LinearMipmapLinearFilter;
+      loadedWater.wrapS = THREE.ClampToEdgeWrapping;
+      loadedWater.wrapT = THREE.ClampToEdgeWrapping;
+      loadedWater.generateMipmaps = true;
+      loadedWater.needsUpdate = true;
+
+      if (loadedWater.image) {
         uniforms.uImageResolution.value.set(
-          loadedTex.image.width || 1920,
-          loadedTex.image.height || 1080
+          loadedWater.image.width || 1919,
+          loadedWater.image.height || 1080
         );
       }
-      uniforms.uTexture.value = loadedTex;
+      uniforms.uWaterTexture.value = loadedWater;
+      waterLoaded = true;
+      checkBothLoaded();
     });
 
-    // 4. Custom Vertex & Fragment Shaders (Click-Only Expanding Wave Packets)
+    // 4. Custom Vertex & Fragment Shaders
     const vertexShader = `
       varying vec2 vUv;
       void main() {
@@ -122,7 +164,9 @@ export default function WaterRippleCanvas({
     `;
 
     const fragmentShader = `
-      uniform sampler2D uTexture;
+      uniform sampler2D uBaseTexture;
+      uniform sampler2D uWaterTexture;
+      uniform float uHasBase;
       uniform float uTime;
       uniform vec2 uResolution;
       uniform vec2 uImageResolution;
@@ -148,11 +192,19 @@ export default function WaterRippleCanvas({
 
       void main() {
         vec2 baseUV = getCoverUVBottom(vUv, uResolution, uImageResolution);
-        vec4 baseWater = texture2D(uTexture, baseUV);
+        vec4 baseColor = texture2D(uBaseTexture, baseUV);
+        vec4 rawWater = texture2D(uWaterTexture, baseUV);
 
-        // If pixel is outside water area, keep canvas completely transparent
-        if (baseWater.a <= 0.001) {
-          gl_FragColor = vec4(0.0);
+        // Water area mask based on alpha of raw water sprite
+        float waterMask = smoothstep(0.01, 0.12, rawWater.a);
+
+        // If pixel is outside water area
+        if (waterMask <= 0.001) {
+          if (uHasBase > 0.5) {
+            gl_FragColor = vec4(baseColor.rgb, 1.0);
+          } else {
+            gl_FragColor = vec4(0.0);
+          }
           return;
         }
 
@@ -160,7 +212,7 @@ export default function WaterRippleCanvas({
         float totalHighlight = 0.0;
         float aspect = uResolution.x / uResolution.y;
 
-        // Iterate solely over active click drops
+        // Iterate over active click drops to calculate wave packets
         for (int i = 0; i < ${MAX_DROPS}; i++) {
           if (i >= uActiveDrops) break;
 
@@ -174,7 +226,7 @@ export default function WaterRippleCanvas({
             toDrop.x *= aspect; // circular wave propagation on any viewport
             float dist = length(toDrop);
 
-            // Expanding wave radius over time: gentle natural water propagation
+            // Expanding wave radius over time
             float speed = 0.26;
             float radius = dt * speed;
             float waveDist = dist - radius;
@@ -199,19 +251,25 @@ export default function WaterRippleCanvas({
           }
         }
 
-        // Feather near shoreline to prevent water spilling over land
-        float waterMask = smoothstep(0.01, 0.12, baseWater.a);
+        // Apply displacement only within the water body
         vec2 displacedScreenUv = vUv + totalDisplacement * waterMask;
         vec2 finalUV = getCoverUVBottom(displacedScreenUv, uResolution, uImageResolution);
         finalUV = clamp(finalUV, 0.0, 1.0);
 
-        vec4 waterColor = texture2D(uTexture, finalUV);
-        waterColor.a *= waterMask;
-
-        // Delicate liquid light catch on ripple crests
+        vec4 waterColor = texture2D(uWaterTexture, finalUV);
         waterColor.rgb += vec3(totalHighlight * 0.12 * waterMask);
 
-        gl_FragColor = waterColor;
+        float alpha = waterColor.a * waterMask;
+
+        if (uHasBase > 0.5) {
+          // Direct in-shader composition: blend water directly over base lake bed.
+          // This outputs 100% opaque pixels, completely avoiding browser/OS alpha compositing bugs!
+          vec3 finalRgb = mix(baseColor.rgb, waterColor.rgb, alpha);
+          gl_FragColor = vec4(finalRgb, 1.0);
+        } else {
+          // Fallback transparent output
+          gl_FragColor = vec4(waterColor.rgb, alpha);
+        }
       }
     `;
 
@@ -221,15 +279,14 @@ export default function WaterRippleCanvas({
       uniforms,
       vertexShader,
       fragmentShader,
-      transparent: true,
+      transparent: !hasBaseImage,
       depthWrite: false,
     });
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // 6. Click / Tap Event Handler (Spawns expanding ripple solely on click)
+    // 6. Click / Tap Event Handler
     const handlePointerDown = (e: PointerEvent) => {
-      // Capture primary click / touch
       if (e.button !== 0 && e.pointerType === "mouse") return;
 
       const rect = renderer.domElement.getBoundingClientRect();
@@ -319,15 +376,16 @@ export default function WaterRippleCanvas({
       renderer.dispose();
       geometry.dispose();
       material.dispose();
-      texture.dispose();
+      if (baseTexture) baseTexture.dispose();
+      waterTexture.dispose();
     };
-  }, [imageSrc, rippleIntensity]);
+  }, [baseImageSrc, actualWaterSrc, rippleIntensity]);
 
   if (webGLError) {
     return (
       <div className={`absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-none ${className}`}>
         <Image
-          src={imageSrc}
+          src={actualWaterSrc}
           alt="Water surface"
           fill
           priority
@@ -343,6 +401,10 @@ export default function WaterRippleCanvas({
   return (
     <div
       ref={mountRef}
+      style={{
+        opacity: isLoaded ? 1 : 0,
+        transition: "opacity 0.35s ease-out",
+      }}
       className={`absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto ${className}`}
     />
   );
