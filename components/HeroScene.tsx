@@ -244,9 +244,9 @@ export default function HeroScene({ progress }: HeroSceneProps) {
             color: "#000000",
            
           }}
-          className="text-sm translate-y-5 translate-x-5 font-normal font-semibold tracking-wide"
+          className="text-xs translate-y-5 translate-x-5 font-normal font-semibold tracking-wide"
         >
-          Click and Hover for interactions on leaves and water
+         •  Click and Hover for interactions on leaves and water
         </p>
       </motion.div>
 

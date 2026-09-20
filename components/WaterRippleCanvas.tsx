@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import Image from "next/image";
 import * as THREE from "three";
 import { MotionValue } from "framer-motion";
 
@@ -28,6 +29,7 @@ export default function WaterRippleCanvas({
 }: WaterRippleCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const isSceneActiveRef = useRef(true);
+  const [webGLError, setWebGLError] = useState(false);
 
   // Monitor scene progress to pause WebGL rendering loop when scrolled past Scene 1
   useEffect(() => {
@@ -50,15 +52,21 @@ export default function WaterRippleCanvas({
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
     camera.position.z = 1;
 
-    // 2. WebGL Renderer with calibrated premultiplied alpha compositing
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      premultipliedAlpha: true,
-      powerPreference: "high-performance",
-      precision: "highp",
-    });
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // 2. WebGL Renderer with straight alpha compositing
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        premultipliedAlpha: false,
+        powerPreference: "high-performance",
+        precision: "highp",
+      });
+    } catch {
+      setWebGLError(true);
+      return;
+    }
+
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x000000, 0);
@@ -87,7 +95,6 @@ export default function WaterRippleCanvas({
     };
 
     const texture = textureLoader.load(imageSrc, (loadedTex) => {
-      loadedTex.colorSpace = THREE.SRGBColorSpace;
       loadedTex.magFilter = THREE.LinearFilter;
       loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
       loadedTex.wrapS = THREE.ClampToEdgeWrapping;
@@ -204,8 +211,7 @@ export default function WaterRippleCanvas({
         // Delicate liquid light catch on ripple crests
         waterColor.rgb += vec3(totalHighlight * 0.12 * waterMask);
 
-        // Calibrated premultiplied alpha output for accurate HTML5 canvas compositing across all GPUs
-        gl_FragColor = vec4(waterColor.rgb * waterColor.a, waterColor.a);
+        gl_FragColor = waterColor;
       }
     `;
 
@@ -216,7 +222,6 @@ export default function WaterRippleCanvas({
       vertexShader,
       fragmentShader,
       transparent: true,
-      blending: THREE.NoBlending,
       depthWrite: false,
     });
     const mesh = new THREE.Mesh(geometry, material);
@@ -317,6 +322,23 @@ export default function WaterRippleCanvas({
       texture.dispose();
     };
   }, [imageSrc, rippleIntensity]);
+
+  if (webGLError) {
+    return (
+      <div className={`absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-none ${className}`}>
+        <Image
+          src={imageSrc}
+          alt="Water surface"
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: "cover", objectPosition: "center bottom" }}
+          className="object-cover object-bottom select-none pointer-events-none"
+          quality={100}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
