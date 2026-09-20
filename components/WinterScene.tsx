@@ -212,9 +212,6 @@ export default function WinterScene({ progress }: WinterSceneProps) {
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
               >
-                {/* Subtle visual pulse ring to signal interactivity */}
-                <div className="absolute inset-0 -m-2 rounded-full border border-[#d4af37]/0 group-hover:border-[#d4af37]/40 transition-colors duration-300 pointer-events-none" />
-
                 <div className="relative w-full h-full">
                   <Image
                     src={bird.image}
