@@ -230,6 +230,16 @@ export default function HeroScene({ progress }: HeroSceneProps) {
           floatDuration={4.3}
           floatDelay={2.7}
         />
+
+        <div className="absolute left-[27.5%]  top-[74%] z-30 w-7 sm:w-8 md:w-20 pointer-events-none">
+          <Image src="/tap.png" alt="Tap" width={100} height={100} sizes="70px" className="h-auto w-full" />
+        </div>
+        <div className="absolute left-[47.5%] top-[70.5%] z-30 w-7 sm:w-8 md:w-20 pointer-events-none">
+          <Image src="/tap.png" alt="Tap" width={100} height={50} sizes="36px" className="h-auto w-full" />
+        </div>
+        <div className="absolute left-[57.5%] top-[76%] z-30 w-7 sm:w-8 md:w-20 pointer-events-none">
+          <Image src="/tap.png" alt="Tap" width={100} height={50} sizes="36px" className="h-auto w-full" />
+        </div>
       </motion.div>
 
       {/* Bottom Right Interaction Hint in font Inter */}
